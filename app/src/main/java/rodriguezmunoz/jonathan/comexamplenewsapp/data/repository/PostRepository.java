@@ -1,0 +1,76 @@
+package rodriguezmunoz.jonathan.comexamplenewsapp.data.repository;
+
+import android.app.Application;
+
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.api.RetrofitClient;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.api.WordPressApiService;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.db.AppDatabase;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.db.CategoryDao;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.db.PostDao;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.model.Post;
+
+public class PostRepository {
+    private final WordPressApiService apiService;
+    private final PostDao postDao;
+    private final CategoryDao categoryDao;
+
+    public PostRepository(Application app) {
+        apiService  = RetrofitClient.getApiService();
+        AppDatabase db = AppDatabase.getInstance(app);
+        postDao     = db.postDao();
+        categoryDao = db.categoryDao();
+    }
+
+    public LiveData<Resource<List<Post>>> getPosts(int page, Integer categoryId) {
+        MutableLiveData<Resource<List<Post>>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading(null));
+
+        apiService.getPosts(page, 10, categoryId, 1).enqueue(new Callback<List<Post>>() {
+            @Override
+            public void onResponse(Call<List<Post>> call, Response<List<Post>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<Post> posts = response.body();
+                    result.setValue(Resource.success(posts));
+                    AppExecutors.getInstance().diskIO().execute(() -> {
+                        if (page == 1) postDao.deleteAll();
+                        postDao.insertAll(PostMapper.toEntityList(posts));
+                    });
+                } else {
+                    loadFromCache(result);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Post>> call, Throwable t) {
+                loadFromCache(result);
+            }
+        });
+        return result;
+    }
+
+    private void loadFromCache(MutableLiveData<Resource<List<Post>>> result) {
+        AppExecutors.getInstance().diskIO().execute(() -> {
+            List<rodriguezmunoz.jonathan.comexamplenewsapp.data.model.PostEntity> cached = postDao.getAllPosts();
+            AppExecutors.getInstance().mainThread().execute(() -> {
+                if (cached != null && !cached.isEmpty()) {
+                    result.setValue(Resource.success(PostMapper.fromEntityList(cached)));
+                } else {
+                    result.setValue(Resource.error("Sin conexión y sin datos en caché", null));
+                }
+            });
+        });
+    }
+
+    public int getLatestCachedPostId() {
+        return postDao.getLatestPostId();
+    }
+}
