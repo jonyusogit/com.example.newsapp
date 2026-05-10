@@ -13,6 +13,7 @@ public class Post {
     @SerializedName("categories")     private List<Integer> categories;
     @SerializedName("link")           private String link;
     private String imageUrl;
+    private boolean isFavorite;
 
     public int getId()                  { return id; }
     public String getDate()             { return date; }
@@ -26,4 +27,6 @@ public class Post {
     public void setImageUrl(String url) { this.imageUrl = url; }
     public void setId(int id)           { this.id = id; }
     public void setDate(String date)    { this.date = date; }
+    public boolean isFavorite()                 { return isFavorite; }
+    public void setFavorite(boolean favorite)   { this.isFavorite = favorite; }
 }

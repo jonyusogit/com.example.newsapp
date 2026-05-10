@@ -9,13 +9,14 @@ import androidx.room.RoomDatabase;
 import rodriguezmunoz.jonathan.comexamplenewsapp.data.model.CategoryEntity;
 import rodriguezmunoz.jonathan.comexamplenewsapp.data.model.PostEntity;
 
-@Database(entities = {PostEntity.class, CategoryEntity.class}, version = 1, exportSchema = false)
+@Database(entities = {PostEntity.class, CategoryEntity.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static volatile AppDatabase INSTANCE;
 
     public abstract PostDao postDao();
     public abstract CategoryDao categoryDao();
+    public abstract FavoriteDao favoriteDao();
 
     public static AppDatabase getInstance(Context context) {
         if (INSTANCE == null) {

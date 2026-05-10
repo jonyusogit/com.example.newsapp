@@ -51,6 +51,15 @@
                 android:ellipsize="end"/>
 
         </LinearLayout>
+        <ImageButton
+            android:id="@+id/btnFavorite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_launcher_foreground"
+            android:contentDescription="Favorito"
+            android:padding="8dp"/>
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

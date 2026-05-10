@@ -31,4 +31,9 @@ public interface WordPressApiService {
 
     @GET("wp/v2/media/{id}")
     Call<FeaturedMedia> getMedia(@Path("id") int mediaId);
+    @GET("wp/v2/posts")
+    Call<List<Post>> searchPosts(
+            @Query("search")   String query,
+            @Query("per_page") int perPage
+    );
 }

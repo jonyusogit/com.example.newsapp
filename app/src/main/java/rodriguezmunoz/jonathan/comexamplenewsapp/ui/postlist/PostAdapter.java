@@ -4,6 +4,7 @@ import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -22,13 +23,22 @@ import rodriguezmunoz.jonathan.comexamplenewsapp.data.model.Post;
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
     private List<Post> posts = new ArrayList<>();
     private final OnPostClickListener listener;
+    private OnFavoriteClickListener favoriteListener;
 
     public interface OnPostClickListener {
         void onPostClick(Post post);
     }
 
+    public interface OnFavoriteClickListener {
+        void onFavoriteClick(Post post, boolean isFav);
+    }
+
     public PostAdapter(OnPostClickListener listener) {
         this.listener = listener;
+    }
+
+    public void setFavoriteListener(OnFavoriteClickListener favoriteListener) {
+        this.favoriteListener = favoriteListener;
     }
 
     @NonNull
@@ -41,7 +51,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
-        holder.bind(posts.get(position), listener);
+        holder.bind(posts.get(position), listener, favoriteListener);
     }
 
     @Override
@@ -55,6 +65,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     static class PostViewHolder extends RecyclerView.ViewHolder {
         ImageView imgThumbnail;
         TextView tvTitle, tvDate, tvExcerpt;
+        ImageButton btnFavorite;
 
         PostViewHolder(View itemView) {
             super(itemView);
@@ -62,9 +73,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             tvTitle      = itemView.findViewById(R.id.tvTitle);
             tvDate       = itemView.findViewById(R.id.tvDate);
             tvExcerpt    = itemView.findViewById(R.id.tvExcerpt);
+            btnFavorite  = itemView.findViewById(R.id.btnFavorite);
         }
 
-        void bind(Post post, OnPostClickListener listener) {
+        void bind(Post post, OnPostClickListener listener,
+                  OnFavoriteClickListener favoriteListener) {
             tvTitle.setText(Html.fromHtml(
                     post.getTitle() != null ? post.getTitle().getRendered() : "",
                     Html.FROM_HTML_MODE_COMPACT));
@@ -80,6 +93,17 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .centerCrop()
                     .into(imgThumbnail);
+
+            // Botón favorito
+            btnFavorite.setAlpha(post.isFavorite() ? 1.0f : 0.3f);
+            btnFavorite.setOnClickListener(v -> {
+                if (favoriteListener != null) {
+                    boolean newState = !post.isFavorite();
+                    post.setFavorite(newState);
+                    btnFavorite.setAlpha(newState ? 1.0f : 0.3f);
+                    favoriteListener.onFavoriteClick(post, newState);
+                }
+            });
 
             itemView.setOnClickListener(v -> listener.onPostClick(post));
         }

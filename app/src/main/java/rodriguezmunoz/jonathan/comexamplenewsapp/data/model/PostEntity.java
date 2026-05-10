@@ -15,6 +15,7 @@ public class PostEntity {
     private String link;
     private String categoriesJson;
     private long cachedAt;
+    private boolean isFavorite;
 
     public int getId()                  { return id; }
     public void setId(int id)           { this.id = id; }
@@ -34,4 +35,6 @@ public class PostEntity {
     public void setCategoriesJson(String json)  { this.categoriesJson = json; }
     public long getCachedAt()               { return cachedAt; }
     public void setCachedAt(long cachedAt)  { this.cachedAt = cachedAt; }
+    public boolean isFavorite() { return isFavorite; }
+    public void setFavorite(boolean favorite) { isFavorite = favorite; }
 }

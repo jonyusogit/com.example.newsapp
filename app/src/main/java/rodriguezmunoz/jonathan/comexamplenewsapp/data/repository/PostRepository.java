@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -15,21 +16,30 @@ import rodriguezmunoz.jonathan.comexamplenewsapp.data.api.RetrofitClient;
 import rodriguezmunoz.jonathan.comexamplenewsapp.data.api.WordPressApiService;
 import rodriguezmunoz.jonathan.comexamplenewsapp.data.db.AppDatabase;
 import rodriguezmunoz.jonathan.comexamplenewsapp.data.db.CategoryDao;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.db.FavoriteDao;
 import rodriguezmunoz.jonathan.comexamplenewsapp.data.db.PostDao;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.model.Category;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.model.CategoryEntity;
 import rodriguezmunoz.jonathan.comexamplenewsapp.data.model.Post;
+import rodriguezmunoz.jonathan.comexamplenewsapp.data.model.PostEntity;
 
 public class PostRepository {
     private final WordPressApiService apiService;
     private final PostDao postDao;
     private final CategoryDao categoryDao;
+    private final FavoriteDao favoriteDao;
+    private final Application app;
 
     public PostRepository(Application app) {
+        this.app    = app;
         apiService  = RetrofitClient.getApiService();
         AppDatabase db = AppDatabase.getInstance(app);
         postDao     = db.postDao();
         categoryDao = db.categoryDao();
+        favoriteDao = db.favoriteDao();
     }
 
+    // ── Posts ──────────────────────────────────────────────────────────────
     public LiveData<Resource<List<Post>>> getPosts(int page, Integer categoryId) {
         MutableLiveData<Resource<List<Post>>> result = new MutableLiveData<>();
         result.setValue(Resource.loading(null));
@@ -48,7 +58,6 @@ public class PostRepository {
                     loadFromCache(result);
                 }
             }
-
             @Override
             public void onFailure(Call<List<Post>> call, Throwable t) {
                 loadFromCache(result);
@@ -59,7 +68,7 @@ public class PostRepository {
 
     private void loadFromCache(MutableLiveData<Resource<List<Post>>> result) {
         AppExecutors.getInstance().diskIO().execute(() -> {
-            List<rodriguezmunoz.jonathan.comexamplenewsapp.data.model.PostEntity> cached = postDao.getAllPosts();
+            List<PostEntity> cached = postDao.getAllPosts();
             AppExecutors.getInstance().mainThread().execute(() -> {
                 if (cached != null && !cached.isEmpty()) {
                     result.setValue(Resource.success(PostMapper.fromEntityList(cached)));
@@ -72,5 +81,68 @@ public class PostRepository {
 
     public int getLatestCachedPostId() {
         return postDao.getLatestPostId();
+    }
+
+    // ── Búsqueda ───────────────────────────────────────────────────────────
+    public LiveData<Resource<List<Post>>> searchPosts(String query) {
+        MutableLiveData<Resource<List<Post>>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading(null));
+
+        apiService.searchPosts(query, 20).enqueue(new Callback<List<Post>>() {
+            @Override
+            public void onResponse(Call<List<Post>> call, Response<List<Post>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    result.setValue(Resource.success(response.body()));
+                } else {
+                    result.setValue(Resource.error("Error en la búsqueda", null));
+                }
+            }
+            @Override
+            public void onFailure(Call<List<Post>> call, Throwable t) {
+                result.setValue(Resource.error("Sin conexión", null));
+            }
+        });
+        return result;
+    }
+
+    // ── Categorías ─────────────────────────────────────────────────────────
+    public LiveData<List<Category>> getCategories() {
+        MutableLiveData<List<Category>> result = new MutableLiveData<>();
+        apiService.getCategories(100).enqueue(new Callback<List<Category>>() {
+            @Override
+            public void onResponse(Call<List<Category>> call, Response<List<Category>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    result.setValue(response.body());
+                    AppExecutors.getInstance().diskIO().execute(() ->
+                            categoryDao.insertAll(CategoryMapper.toEntityList(response.body()))
+                    );
+                } else {
+                    loadCategoriesFromCache(result);
+                }
+            }
+            @Override
+            public void onFailure(Call<List<Category>> call, Throwable t) {
+                loadCategoriesFromCache(result);
+            }
+        });
+        return result;
+    }
+
+    private void loadCategoriesFromCache(MutableLiveData<List<Category>> result) {
+        AppExecutors.getInstance().diskIO().execute(() -> {
+            List<CategoryEntity> cached = categoryDao.getAllCategories();
+            AppExecutors.getInstance().mainThread().execute(() ->
+                    result.setValue(CategoryMapper.fromEntityList(cached))
+            );
+        });
+    }
+
+    // ── Favoritos ──────────────────────────────────────────────────────────
+    public List<PostEntity> getFavoriteEntities() {
+        return favoriteDao.getFavorites();
+    }
+
+    public void setFavorite(int postId, boolean isFav) {
+        favoriteDao.setFavorite(postId, isFav);
     }
 }
