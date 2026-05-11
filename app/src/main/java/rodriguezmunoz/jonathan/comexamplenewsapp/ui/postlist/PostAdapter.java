@@ -95,12 +95,16 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                     .into(imgThumbnail);
 
             // Botón favorito
-            btnFavorite.setAlpha(post.isFavorite() ? 1.0f : 0.3f);
+            btnFavorite.setImageResource(post.isFavorite() ?
+                    android.R.drawable.btn_star_big_on :
+                    android.R.drawable.btn_star_big_off);
             btnFavorite.setOnClickListener(v -> {
                 if (favoriteListener != null) {
                     boolean newState = !post.isFavorite();
                     post.setFavorite(newState);
-                    btnFavorite.setAlpha(newState ? 1.0f : 0.3f);
+                    btnFavorite.setImageResource(newState ?
+                            android.R.drawable.btn_star_big_on :
+                            android.R.drawable.btn_star_big_off);
                     favoriteListener.onFavoriteClick(post, newState);
                 }
             });

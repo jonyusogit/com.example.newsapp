@@ -57,7 +57,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_launcher_foreground"
+            android:src="@android:drawable/btn_star_big_off"
             android:contentDescription="Favorito"
             android:padding="8dp"/>
     </LinearLayout>
