@@ -124,7 +124,7 @@ public class PostRepository {
             @Override
             public void onResponse(Call<List<Post>> call, Response<List<Post>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    result.setValue(Resource.success(response.body()));
+                    resolveImages(response.body(), result);
                 } else {
                     result.setValue(Resource.error("Error en la búsqueda", null));
                 }
